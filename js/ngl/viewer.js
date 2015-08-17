@@ -955,15 +955,23 @@ NGL.Viewer.prototype = {
         var p = this.params;
         var lookAt = new THREE.Vector3( 0, 0, 0 );
 
-        this.perspectiveCamera = new THREE.PerspectiveCamera(
-            p.cameraFov, this.aspect, 0.1, 10000
-        );
-        this.perspectiveCamera.position.z = p.cameraZ;
-        this.perspectiveCamera.lookAt( lookAt );
+        // this.perspectiveCamera = new THREE.PerspectiveCamera(
+        //     p.cameraFov, this.aspect, 0.1, 10000
+        // );
+        // this.perspectiveCamera.position.z = p.cameraZ;
+        // this.perspectiveCamera.lookAt( lookAt );
 
-        this.camera = this.perspectiveCamera;
+        // this.camera = this.perspectiveCamera;
+
+        this.camera = new THREE.CombinedCamera(
+            this.width, this.height, p.cameraFov, 0.1, 10000, 0.1, 10000
+        );
+        this.camera.position.z = p.cameraZ;
+        this.camera.lookAt( lookAt );
 
         this.camera.updateProjectionMatrix();
+
+        this.camera.toOrthographic();
 
     },
 
@@ -1117,6 +1125,9 @@ NGL.Viewer.prototype = {
     initControls: function(){
 
         this.controls = new THREE.TrackballControls(
+            this.camera, this.renderer.domElement
+        );
+        this.controls = new THREE.OrthographicTrackballControls(
             this.camera, this.renderer.domElement
         );
 
@@ -1416,11 +1427,9 @@ NGL.Viewer.prototype = {
         if( near ) p.cameraNear = near;
         if( far ) p.cameraFar = far;
 
-        this.camera = this.perspectiveCamera;
-
-        this.perspectiveCamera.fov = p.cameraFov;
-        this.perspectiveCamera.near = p.cameraNear;
-        this.perspectiveCamera.far = p.cameraFar;
+        this.camera.fov = p.cameraFov;
+        this.camera.near = p.cameraNear;
+        this.camera.far = p.cameraFar;
 
         this.controls.object = this.camera;
         this.camera.updateProjectionMatrix();
@@ -1456,7 +1465,7 @@ NGL.Viewer.prototype = {
         }
 
         this.aspect = this.width / this.height;
-        this.perspectiveCamera.aspect = this.aspect;
+        this.camera.setSize( this.width, this.height );
         this.camera.updateProjectionMatrix();
 
         this.renderer.setPixelRatio( window.devicePixelRatio );
@@ -1668,7 +1677,7 @@ NGL.Viewer.prototype = {
         this.modelGroup.fog = fog;
 
         //
-
+        this.camera.updateProjectionMatrix();
         this.camera.updateMatrix();
         this.camera.updateMatrixWorld( true );
         this.camera.matrixWorldInverse.getInverse( this.camera.matrixWorld );
@@ -1974,9 +1983,11 @@ NGL.Viewer.prototype = {
 
                 zoom = Math.max( zoom, 1.2 * this.params.clipDist );
 
-                this.camera.position.multiplyScalar(
-                    zoom / this.camera.position.length()
-                );
+                // this.camera.position.multiplyScalar(
+                //     zoom / this.camera.position.length()
+                // );
+
+                this.camera.setZoom( zoom );
 
             }
 

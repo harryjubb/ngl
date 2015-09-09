@@ -20,20 +20,22 @@ NGL.Widget.prototype = {
 NGL.StageWidget = function( stage ){
 
     var signals = stage.signals;
-    var viewer = stage.viewer;
-    var renderer = viewer.renderer;
 
-    this.viewport = new NGL.ViewportWidget( stage ).setId( 'viewport' );
-    document.body.appendChild( this.viewport.dom );
+    //
 
-    this.toolbar = new NGL.ToolbarWidget( stage ).setId( 'toolbar' );
-    document.body.appendChild( this.toolbar.dom );
+    var viewport = new NGL.ViewportWidget( stage ).setId( 'viewport' );
+    document.body.appendChild( viewport.dom );
 
-    this.menubar = new NGL.MenubarWidget( stage ).setId( 'menubar' );
-    document.body.appendChild( this.menubar.dom );
+    var toolbar = new NGL.ToolbarWidget( stage ).setId( 'toolbar' );
+    document.body.appendChild( toolbar.dom );
 
-    this.sidebar = new NGL.SidebarWidget( stage ).setId( 'sidebar' );
-    document.body.appendChild( this.sidebar.dom );
+    var menubar = new NGL.MenubarWidget( stage ).setId( 'menubar' );
+    document.body.appendChild( menubar.dom );
+
+    var sidebar = new NGL.SidebarWidget( stage ).setId( 'sidebar' );
+    document.body.appendChild( sidebar.dom );
+
+    //
 
     signals.requestTheme.add( function( value ){
 
@@ -52,9 +54,98 @@ NGL.StageWidget = function( stage ){
 
     stage.preferences.setTheme();
 
-    viewer.onWindowResize();
+    //
+
+    stage.handleResize();
     // FIXME hack for ie11
-    setTimeout( function(){ viewer.onWindowResize(); }, 500 );
+    setTimeout( function(){ stage.handleResize(); }, 500 );
+
+    //
+
+    var doResizeLeft = false;
+    var movedResizeLeft = false;
+    var minResizeLeft = false;
+
+    var handleResizeLeft = function( clientX ){
+        if( clientX >= 50 && clientX <= window.innerWidth - 10 ){
+            sidebar.setWidth( window.innerWidth - clientX + "px" );
+            viewport.setWidth( clientX + "px" );
+            toolbar.setWidth( clientX + "px" );
+            stage.handleResize();
+        }
+        var sidebarWidth = sidebar.dom.getBoundingClientRect().width;
+        if( clientX === undefined ){
+            var mainWidth = window.innerWidth - sidebarWidth;
+            viewport.setWidth( mainWidth + "px" );
+            toolbar.setWidth( mainWidth + "px" );
+            stage.handleResize();
+        }
+        if( sidebarWidth <= 10 ){
+            minResizeLeft = true;
+        }else{
+            minResizeLeft = false;
+        }
+    };
+    handleResizeLeft = NGL.throttle(
+        handleResizeLeft, 50, { leading: true, trailing: true }
+    );
+
+    var resizeLeft = new UI.Panel()
+        .setClass( "ResizeLeft" )
+        .onMouseDown( function(){
+            doResizeLeft = true;
+            movedResizeLeft = false;
+        } )
+        .onClick( function(){
+            if( minResizeLeft ){
+                handleResizeLeft( window.innerWidth - 300 );
+            }else if( !doResizeLeft && !movedResizeLeft ){
+                handleResizeLeft( window.innerWidth - 10 );
+            }
+        } );
+
+    sidebar.add( resizeLeft );
+
+    window.addEventListener(
+        'mousemove', function( event ){
+            if( doResizeLeft ){
+                document.body.style.cursor = "col-resize";
+                movedResizeLeft = true;
+                handleResizeLeft( event.clientX );
+            }
+        }, false
+    );
+
+    window.addEventListener(
+        'mouseup', function( event ){
+            doResizeLeft = false;
+            document.body.style.cursor = "";
+        }, false
+    );
+
+    window.addEventListener(
+        'resize', function( event ){
+            handleResizeLeft();
+        }, false
+    );
+
+    //
+
+    document.addEventListener( 'dragover', function( e ){
+        e.stopPropagation();
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'none';
+    }, false );
+
+    document.addEventListener( 'drop', function( e ){
+        e.stopPropagation();
+        e.preventDefault();
+    }, false );
+
+    this.viewport = viewport;
+    this.toolbar = toolbar;
+    this.menubar = menubar;
+    this.sidebar = sidebar;
 
     return this;
 
@@ -89,14 +180,15 @@ NGL.ViewportWidget = function( stage ){
         e.stopPropagation();
         e.preventDefault();
 
-        var fileList = e.dataTransfer.files;
-        var n = fileList.length;
-
-        for( var i=0; i<n; ++i ){
-
-            stage.loadFile( fileList[ i ] );
-
-        }
+        async.eachLimit(
+            e.dataTransfer.files,
+            4,
+            function( file, callback ){
+                stage.loadFile( file, {
+                    defaultRepresentation: true
+                } ).then( function(){ callback(); } );
+            }
+        );
 
     }, false );
 
@@ -180,6 +272,7 @@ NGL.MenubarWidget = function( stage ){
     container.add( new NGL.MenubarFileWidget( stage ) );
     container.add( new NGL.MenubarViewWidget( stage ) );
     container.add( new NGL.MenubarExamplesWidget( stage ) );
+    container.add( new NGL.MenubarPluginsWidget( stage ) );
     container.add( new NGL.MenubarHelpWidget( stage ) );
 
     container.add(
@@ -196,8 +289,8 @@ NGL.MenubarWidget = function( stage ){
 NGL.MenubarFileWidget = function( stage ){
 
     var fileTypesOpen = [
-        "pdb", "ent", "gro", "cif", "mcif", "mmcif", "sdf", "mol2",
-        "mrc", "ccp4", "map", "cube",
+        "pdb", "ent", "pqr", "gro", "cif", "mcif", "mmcif", "sdf", "mol2",
+        "mrc", "ccp4", "map", "cube", "dx",
         "obj", "ply",
         "ngl", "ngz",
         "gz", "lzma", "bz2", "zip"
@@ -207,23 +300,22 @@ NGL.MenubarFileWidget = function( stage ){
     var fileInput = document.createElement("input");
     fileInput.type = "file";
     fileInput.multiple = true;
-    fileInput.style.display = "hidden";
-    document.body.appendChild( fileInput );
+    fileInput.style.display = "none";
     fileInput.accept = "." + fileTypesOpen.join( ",." );
     fileInput.addEventListener( 'change', function( e ){
 
-        var fileList = e.target.files;
-        var n = fileList.length;
-
-        for( var i=0; i<n; ++i ){
-
-            stage.loadFile( fileList[ i ], {
-                asTrajectory: asTrajectory,
-                firstModelOnly: firstModelOnly,
-                cAlphaOnly: cAlphaOnly
-            } );
-
-        }
+        async.eachLimit(
+            e.target.files,
+            4,
+            function( file, callback ){
+                stage.loadFile( file, {
+                    defaultRepresentation: true,
+                    asTrajectory: asTrajectory,
+                    firstModelOnly: firstModelOnly,
+                    cAlphaOnly: cAlphaOnly
+                } ).then( function(){ callback(); } );
+            }
+        );
 
     }, false );
 
@@ -254,6 +346,7 @@ NGL.MenubarFileWidget = function( stage ){
                 if( fileTypesImport.indexOf( ext ) !== -1 ){
 
                     stage.loadFile( path.path, {
+                        defaultRepresentation: true,
                         asTrajectory: asTrajectory,
                         firstModelOnly: firstModelOnly,
                         cAlphaOnly: cAlphaOnly
@@ -307,6 +400,7 @@ NGL.MenubarFileWidget = function( stage ){
         if( e.keyCode === 13 ){
 
             stage.loadFile( "rcsb://" + e.target.value, {
+                defaultRepresentation: true,
                 asTrajectory: asTrajectory,
                 firstModelOnly: firstModelOnly,
                 cAlphaOnly: cAlphaOnly
@@ -352,6 +446,7 @@ NGL.MenubarFileWidget = function( stage ){
     ];
 
     var optionsPanel = UI.MenubarHelper.createOptionsPanel( menuConfig );
+    optionsPanel.dom.appendChild( fileInput );
 
     return UI.MenubarHelper.createMenuContainer( 'File', optionsPanel );
 
@@ -477,6 +572,42 @@ NGL.MenubarExamplesWidget = function( stage ){
     var optionsPanel = UI.MenubarHelper.createOptionsPanel( menuConfig );
 
     return UI.MenubarHelper.createMenuContainer( 'Examples', optionsPanel );
+
+};
+
+
+NGL.MenubarPluginsWidget = function( stage ){
+
+    // configure menu contents
+
+    var createOption = UI.MenubarHelper.createOption;
+
+    var menuConfig = [];
+
+    var plugins = [
+        "apbs", "crosslink", "job", "fragfit-loader", "fragfit-job"
+    ];
+
+    plugins.forEach( function( name ){
+
+        menuConfig.push(
+
+            createOption( name, function(){
+
+                stage.loadFile(
+                    "data://plugins/" + name + ".plugin",
+                    { name: name + " plugin" }
+                );
+
+            } )
+
+        );
+
+    } );
+
+    var optionsPanel = UI.MenubarHelper.createOptionsPanel( menuConfig );
+
+    return UI.MenubarHelper.createMenuContainer( 'Plugins', optionsPanel );
 
 };
 
@@ -1075,7 +1206,7 @@ NGL.SidebarWidget = function( stage ){
             stage.viewer.params.fogNear, 1
         )
         .onInput( function(){
-            stage.viewer.setFog( null, null, fogNear.getValue(), fogFar.getValue() );
+            stage.viewer.setFog( null, fogNear.getValue(), fogFar.getValue() );
         } );
 
     var fogFar = new UI.Range(
@@ -1083,7 +1214,7 @@ NGL.SidebarWidget = function( stage ){
             stage.viewer.params.fogFar, 1
         )
         .onInput( function(){
-            stage.viewer.setFog( null, null, fogNear.getValue(), fogFar.getValue() );
+            stage.viewer.setFog( null, fogNear.getValue(), fogFar.getValue() );
         } );
 
     //
@@ -1638,7 +1769,7 @@ NGL.RepresentationComponentWidget = function( component, stage ){
 
     var menu = new UI.PopupMenu( "bars", "Representation" )
         .setMarginLeft( "45px" )
-        .setEntryLabelWidth( "110px" );
+        .setEntryLabelWidth( "130px" );
 
     menu.addEntry( "type", new UI.Text( component.repr.type ) );
 
@@ -2047,7 +2178,9 @@ NGL.TrajectoryComponentWidget = function( component, stage ){
 
 NGL.lastUsedDirectory = "";
 
-NGL.DirectoryListing = function(){
+NGL.DirectoryListing = function( baseUrl ){
+
+    this.baseUrl = baseUrl !== undefined ? baseUrl : "../dir/";
 
     var SIGNALS = signals;
 
@@ -2070,7 +2203,7 @@ NGL.DirectoryListing.prototype = {
         path = path || "";
 
         var loader = new THREE.XHRLoader();
-        var url = "../dir/" + path;
+        var url = this.baseUrl + path;
 
         // force reload
         THREE.Cache.remove( url );
@@ -2107,7 +2240,7 @@ NGL.DirectoryListing.prototype = {
 };
 
 
-NGL.DirectoryListingWidget = function( stage, heading, filter, callback ){
+NGL.DirectoryListingWidget = function( stage, heading, filter, callback, baseUrl ){
 
     // from http://stackoverflow.com/a/20463021/1435042
     function fileSizeSI(a,b,c,d,e){
@@ -2115,7 +2248,7 @@ NGL.DirectoryListingWidget = function( stage, heading, filter, callback ){
             +String.fromCharCode(160)+(e?'kMGTPEZY'[--e]+'B':'Bytes')
     }
 
-    var dirListing = new NGL.DirectoryListing();
+    var dirListing = new NGL.DirectoryListing( baseUrl );
 
     var signals = dirListing.signals;
     var container = new UI.OverlayPanel();

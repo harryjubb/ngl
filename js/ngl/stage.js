@@ -24,9 +24,7 @@ NGL.Stage = function( eid ){
         nothingPicked: new SIGNALS.Signal(),
         onPicking: new SIGNALS.Signal(),
 
-        requestTheme: new SIGNALS.Signal(),
-
-        windowResize: new SIGNALS.Signal()
+        requestTheme: new SIGNALS.Signal()
 
     };
 
@@ -77,10 +75,6 @@ NGL.Stage.prototype = {
             object.addRepresentation( "surface" );
             object.centerView();
 
-        }else if( object instanceof NGL.ScriptComponent ){
-
-            object.run();
-
         }
 
     },
@@ -116,74 +110,49 @@ NGL.Stage.prototype = {
 
     loadFile: function( path, params ){
 
-        var _onLoad;
-        var p = params || {};
+        var p = Object.assign( {}, params );
 
-        // allow loadFile( path, onLoad ) method signature
+        // deprecated
         if( typeof params === "function" ){
-
-            _onLoad = params;
+            console.warn( "NGL.Stage.loadFile: function param deprecated" )
             p = {};
-
         }else{
-
-            _onLoad = p.onLoad;
-
+            if( p.onLoad ) console.warn( "NGL.Stage.loadFile onLoad param deprecated" )
+            if( p.onError ) console.warn( "NGL.Stage.loadFile onError param deprecated" )
         }
 
-        var component;
+        // placeholder component
+        var component = new NGL.Component( this, p );
+        component.name = NGL.getFileInfo( path ).name;
+        this.addComponent( component );
 
-        p.onLoad = function( object, _params ){
+        var onLoadFn = function( object ){
 
-            // check for placeholder component
-            if( component ){
+            // remove placeholder component
+            this.removeComponent( component );
 
-                this.removeComponent( component );
+            component = this.addComponentFromObject( object, p );
 
+            if( component instanceof NGL.ScriptComponent ){
+                component.run();
             }
 
-            component = this.addComponentFromObject( object, _params );
-
-            if( typeof _onLoad === "function" ){
-
-                _onLoad( component );
-
-            }else{
-
+            if( p.defaultRepresentation ){
                 this.defaultFileRepresentation( component );
-
             }
+
+            return component;
 
         }.bind( this );
 
-        var _e;
-        var _onError = p.onError;
+        var onErrorFn = function( e ){
 
-        p.onError = function( e ){
-
-            _e = e;
-
-            if( component ) component.setStatus( e );
-
-            if( typeof _onError === "function" ) _onError( e );
-
-        };
-
-        NGL.autoLoad( path, p );
-
-        // ensure that component isn't ready yet
-        if( !component ){
-
-            component = new NGL.Component( this, p );
-            var path2 = ( path instanceof File ) ? path.name : path;
-            component.name = path2.replace( /^.*[\\\/]/, '' );
-
-            this.addComponent( component );
+            component.setStatus( e );
+            throw e;
 
         }
 
-        // set error status when already known
-        if( _e ) component.setStatus( _e );
+        return NGL.autoLoad( path, p ).then( onLoadFn, onErrorFn );
 
     },
 
@@ -239,6 +208,12 @@ NGL.Stage.prototype = {
             }
 
         }, this );
+
+    },
+
+    handleResize: function(){
+
+        this.viewer.handleResize();
 
     },
 
@@ -1291,6 +1266,14 @@ NGL.SurfaceComponent.prototype = NGL.createObject(
         return NGL.Component.prototype.addRepresentation.call(
             this, type, this.surface, params
         );
+
+    },
+
+    dispose: function(){
+
+        this.surface.dispose();
+
+        NGL.Component.prototype.dispose.call( this );
 
     },
 

@@ -17,7 +17,7 @@ Promise.all( [
     } ),
 
     stage.loadFile( "data://3dqb.pdb", {
-        name: "PDB entry 3DQB"
+        name: "3DQB"
     } ).then( function( o ){
         o.addRepresentation( "cartoon" );
         o.addRepresentation( "hyperball", { sele: "1-100", name: "resno 1-100" } );
@@ -34,8 +34,6 @@ Promise.all( [
             sele: "( sidechainAttached and CYS ) or SF4"
         } );
         o.setName( "1BLU" );
-        stage.getRepresentationsByName( { comp: "1BLU" } )
-            .requestGuiVisibility( false );
 
     } )
 
@@ -67,7 +65,5 @@ Promise.all( [
     ) );
 
     stage.centerView();
-    stage.getComponentsByName( undefined, NGL.StructureComponent )
-        .requestGuiVisibility( false );
 
 } );

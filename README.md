@@ -1,5 +1,9 @@
 
-![Gallery](gallery.png)
+[![License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](https://github.com/arose/ngl/blob/master/LICENSE)
+[![Version](http://img.shields.io/badge/version-0.9.3-blue.svg?style=flat)](https://github.com/arose/ngl/releases/tag/v0.9.3)
+[![Changelog](https://img.shields.io/badge/changelog--lightgrey.svg?style=flat)](https://github.com/arose/ngl/blob/master/CHANGELOG.md)
+[![npm version](https://badge.fury.io/js/ngl.svg)](https://badge.fury.io/js/ngl)
+[![Build Status](https://travis-ci.org/arose/ngl.svg?branch=master)](https://travis-ci.org/arose/ngl)
 
 
 NGL Viewer is a web application for molecular visualization. [WebGL](https://get.webgl.org/) is employed to display molecules like proteins and DNA/RNA with a variety of representations.
@@ -7,15 +11,15 @@ NGL Viewer is a web application for molecular visualization. [WebGL](https://get
 See it in action:
 
 * [Web application](http://arose.github.io/ngl/?example=3pqr)
-* [API documentation](http://arose.github.io/ngl/doc/)
+* [API documentation](http://arose.github.io/ngl/api/)
 
 
 
 Features
 --------
 
-* Molecular structures (mmCIF, PDB, PQR, GRO, SDF, MOL2)
-* Density volumes (MRC/MAP/CCP4, DX, CUBE)
+* Molecular structures (mmCIF, PDB, PQR, GRO, SDF, MOL2, MMTF)
+* Density volumes (MRC/MAP/CCP4, DX/DXBIN, CUBE)
 * User interaction (mouse picking, selection language, image export)
 * Coordinate trajectories (animation, remote access via [MDSrv](https://github.com/arose/mdsrv/))
 * Embeddable (single file, API)
@@ -25,23 +29,21 @@ Features
 Table of contents
 =================
 
-* [Installation](#installation)
-* [Development](#development)
-* [Deployment](#deployment)
-* [Changelog](#changelog)
+* [Usage](#usage)
+* [Browser support](#browser-support)
 * [Acknowledgments](#acknowledgments)
-* [License](#license)
 
 
 
-Installation
-============
+Usage
+=====
 
-Since the NGL Viewer is a set of static files to be viewed in a web-browser there is not much of an installation needed. For development purposes it will be helpful to clone this repository and serve it locally (see below). The  When embedding the NGL Viewer as a library it is sufficient to include the self contained [embedded build](js/build/ngl.embedded.min.js). The full web application including the GUI requires the full build and some static assets - have a look at the example [html files](html/) for what is required.
+Since the NGL Viewer is a set of static files to be viewed in a web-browser there is not much of an installation needed. For development purposes it will be helpful to clone this repository and serve it locally (see below). When embedding the NGL Viewer as a library it is sufficient to include the self contained build [dist/ngl.js](dist/ngl.js). A full web application including a GUI can be found in the [examples](examples/) directory.
 
 
-Browser
--------
+
+Browser support
+===============
 
 The NGL Viewer requires your browser to support WebGL. To see if your browser supports WebGL and what you might need to do to activate it, visit the [Get WebGL](https://get.webgl.org/) page.
 
@@ -57,130 +59,19 @@ __WebGL draft extensions__: For a smoother appearance of cylinders and spheres y
 * Internet Explorer: Currently, the `EXT_frag_depth` extension is not supported.
 
 
-Trajectories
-------------
-
-The NGL Viewer can be configured to interactively display molecular dynamics trajectories served by [MDSrv](https://github.com/arose/mdsrv/). After installing MDSrv please look at the following files on how to set everything up.
-
-* [js/extra/mdsrv.js](js/extra/mdsrv.js) - Implementation of `NGL.MdsrvDatasource` that is used to access trajectory data in `NGL.RemoteTrajectory`.
-* [js/extra/examples_mdsrv.js](js/extra/examples_mdsrv.js) - A number of examples of molecular dynamics trajectories.
-* [html/mdsrv.dev.html](html/mdsrv.dev.html) - Example html showing the configuration for viewing trajectories in the NGL Viewer.
-
-
-
-Development
-===========
-
-Development of the NGL Viewer is coordinated through the repository on [github](http://github.com/arose/ngl). Please use the [issue tracker](https://github.com/arose/ngl/issues) there to report bugs or suggest improvements.
-
-To participate in developing for the NGL Viewer you need a local copy of the source code, which you can obtain by forking the [repository](https://github.com/arose/ngl) on github. Read about how to [fork a repository](https://help.github.com/articles/fork-a-repo/), [sync a fork](https://help.github.com/articles/syncing-a-fork/) and [start a pull request](https://help.github.com/articles/using-pull-requests/).
-
-
-Local server
-------------
-
-A (Python based) local development server can be started with the shell script
-
-    sh serve.sh
-
-to serve the NGL Viewer at http://localhost:8000/.
-
-Limited (due to browser security restrictions) functionality is available when directly opening one of the [html files](html/) from the local file system. For Google Chrome/Chromium it can be helpful to start the browser with the `--allow-file-access-from-files` command line flag.
-
-
-Unit tests
-----------
-
-[QUnit](http://qunitjs.com/) is used for unit testing. The unit tests can be found [here](test/unit/).
-
-
-
-Deployment
-==========
-
-Any webserver that serves static files will do. If you want to serve the NGL Viewer directly from the repository with the Apache webserver you can do so by creating a symlink:
-
-	ln -s /path/to/ngl-repository/ /var/www/html/ngl
-
-Read more about getting started with the Apache webserver [here](http://httpd.apache.org/docs/trunk/getting-started.html).
-
-
-
-Changelog
-=========
-
-Version 0.6
------------
-
-* MIGRATION: `Stage.loadFile` signature changed, now returns a `Promise` and does not accept callbacks
-* MIGRATION: moved trajectory server into its own repository: [MDSrv](https://github.com/arose/mdsrv/)
-* ADD: Support for MOL2 and SDF files
-* ADD: Support for DX files
-* ADD: Support for PQR files
-* ADD: `ExampleRegistry` singleton
-* ADD: `PluginRegistry` singleton
-* ADD: `Datasource` class to use instead of hard-coded paths
-* ADD: `GidPool`
-* ADD: simple xml parser
-* ADD: APBS plugin to load PQR and DX file, simple GUI
-* ADD: bond and surface picking
-* ADD: User-defined color schemes (API)
-* EXAMPLES: general fixes and enhancements
-* DOC: moved installation and development information into the README
-* GUI/DOC: Higher color contrast for GUI and documentation pages
-* GUI: `VirtualList` and `VirtualTable`
-* GUI: re-sizable sidebar (contents still need to be made responsive)
-* DEL: removed FragFit plugins
-* CODE: qunit updated
-* CODE: moved logical units of code into their own files
-* CODE: speeded up secondary structure assignment from PDB/mmCIF files; fixed bugs leading to wrong assignment
-* CODE: element color scheme now uses colorValue parameter to color carbon elements
-* CODE: script and assets paths are now configurable
-* CODE: more forgiving pdb parsing wrt to model records
-* CODE: helper function for re-ordering atoms
-* CODE: enhancements to handling Web Workers (`WorkerPool`, lazy Worker creation)
-* CODE: enhancements to volume triangulation (limit to given box, skip empty parts)
-* CODE: all `*Buffer` classes now inherit from `Buffer` and share common code
-* CODE: BufferAttributes can be re-used or grown
-* CODE: moved Buffer-specific code out of Representation class
-* CODE: molecular surface enhancements (color by atom, filter by atom)
-* CODE: nicer clipping of meshes and impostors (unlit interior to make them appear solid)
-* CODE: optimized kdtree building
-* CODE: clearer atomnames handling for fiber creation
-* CODE: Color handling code refactored exposing more parameters
-* CODE: Basic support for async creation of representations (so far used for molecular surfaces and volume triangulation)
-* CODE: chunked data loading and parsing via streamer class
-* CODE: faster autobonding of large residues (e.g. hydrated lipids)
-* CODE: WebWorker support while using development and build files
-* CODE: WebWorker used for decompression, parsing and surface generation
-* FIX: Issue #7
-* FIX: residues at the end of fibers may not require all backbone atoms
-* FIX: standard compatible atom names when writing pdb files
-* FIX: origin coordinates not used/read from mrc header
-* WIP: scripting API
-
-
-Version 0.5
------------
-
-The first release.
-
-
 
 Acknowledgments
 ===============
 
-This project would not be possible without recourse to many fine open-source projects. Especially the [three.js](http://threejs.org/) project provides a great foundation.
+This project would not be possible without many fine open-source projects. Especially the [three.js](http://threejs.org/) project provides a great foundation.
 
 * [three.js](http://threejs.org/)
     * NGL relies on the three.js library to interface WebGL
     * NGL's documentation uses the three.js documentation as a template
     * NGL's GUI is based on the three.js editor UI
 * [sprintf.js](https://github.com/alexei/sprintf.js) - for formatting text
-* [async.js](https://github.com/caolan/async)
 * [jsfeat](http://inspirit.github.io/jsfeat/) - the SVD code for the superposition method is from jsfeat
-* [QUnit](http://qunitjs.com/) - for unit testing; [assert-close](https://github.com/JamesMGreene/qunit-assert-close), [Blanket.js](http://blanketjs.org/)
-* [Benchmark.js](http://benchmarkjs.com/) - for benchmarking
+* [Mocha](https://mochajs.org/) and [Chai](http://chaijs.com/) - for unit testing
 * [Chroma.js](https://github.com/gka/chroma.js) - for color handling
 * [FlexiColorPicker](https://github.com/DavidDurman/FlexiColorPicker) - for color picking
 * [Virtual DOM List](https://github.com/sergi/virtual-list)
@@ -188,14 +79,22 @@ This project would not be possible without recourse to many fine open-source pro
 * [JS Signals](http://millermedeiros.github.com/js-signals)
 * [tether.js](http://github.hubspot.com/tether/)
 * [Lightweight promise polyfill](https://github.com/taylorhakes/promise-polyfill)
-* Compression: [bzip2.js](https://github.com/antimatter15/bzip2.js), [JSZip](http://stuk.github.io/jszip/), [js-lzma](https://code.google.com/p/js-lzma/), [pako - zlib port](https://github.com/nodeca/pako)
+* [pako - zlib port](https://github.com/nodeca/pako)
 * [Open Source PyMOL](http://sourceforge.net/projects/pymol/) - screen aligned cylinder shader
 * [VTK](http://www.vtk.org/) Quadric shader code from the PointSprite Plugin - quadric surface center calculation
 * [HyperBalls](http://sourceforge.net/projects/hyperballs/) - hyperball stick shader - Chavent, M., Vanel, A., Tek, A., Levy, B., Robert, S., Raffin, B., &amp; Baaden, M. (2011). GPU-accelerated atom and dynamic bond visualization using hyperballs: a unified algorithm for balls, sticks, and hyperboloids. Journal of Computational Chemistry, 32(13), 2924–35. [doi:10.1002/jcc.21861](https://dx.doi.org/10.1002/jcc.21861)
 
 
+Funding sources:
 
-License
-=======
+* NCI/NIH award number U01 CA198942
+* DFG Projekt HI 1502
 
-Generally MIT licensed, see the LICENSE file for details.
+
+Cite
+====
+
+When using NGL please cite:
+
+* AS Rose, AR Bradley, Y Valasatava, JM Duarte, A Prlić and PW Rose. _Web-based molecular graphics for large complexes._ ACM Proceedings of the 21st International Conference on Web3D Technology (Web3D '16): 185-186, 2016. [doi:10.1145/2945292.2945324](http://dx.doi.org/10.1145/2945292.2945324)
+* AS Rose and PW Hildebrand. _NGL Viewer: a web application for molecular visualization._ Nucl Acids Res (1 July 2015) 43 (W1): W576-W579 first published online April 29, 2015. [doi:10.1093/nar/gkv402](https://doi.org/10.1093/nar/gkv402)
